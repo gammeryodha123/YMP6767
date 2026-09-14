@@ -1,4 +1,3 @@
-cat << 'EOF' > generate_project.py
 import os
 
 APP_PY_CONTENT = '''import os
@@ -236,5 +235,4 @@ def generate_files():
 
 if __name__ == "__main__":
     generate_files()
-EOF
-python generate_project.py
+        
