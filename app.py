@@ -1,4 +1,6 @@
 import os
+
+APP_PY_CONTENT = '''import os
 import io
 import json
 import requests
@@ -8,8 +10,14 @@ from firebase_admin import credentials, auth, firestore
 from PIL import Image
 
 app = Flask(__name__)
-app.secret_key = "super-secret-key-change-this-in-production"
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-change-this-in-production")
 
+# --- FIREBASE CONFIG (FROM ENVIRONMENT VARIABLES) ---
+FIREBASE_API_KEY = os.environ.get("FIREBASE_API_KEY", "")
+FIREBASE_AUTH_DOMAIN = os.environ.get("FIREBASE_AUTH_DOMAIN", "python-music-app-67.firebaseapp.com")
+FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "python-music-app-67")
+
+# --- FIREBASE SETUP (GITHUB SAFE) ---
 cred_json = os.environ.get('FIREBASE_CREDENTIALS')
 cred_path = os.path.join(os.path.dirname(__file__), 'serviceAccountKey.json')
 
@@ -47,7 +55,12 @@ def create_square_thumbnail(image_bytes, size=(300, 300)):
 
 @app.route('/')
 def index():
-    return render_template_string(HTML_TEMPLATE)
+    return render_template_string(
+        HTML_TEMPLATE,
+        firebase_api_key=FIREBASE_API_KEY,
+        firebase_auth_domain=FIREBASE_AUTH_DOMAIN,
+        firebase_project_id=FIREBASE_PROJECT_ID
+    )
 
 @app.route('/api/tracks', methods=['GET'])
 def get_tracks():
@@ -131,9 +144,9 @@ HTML_TEMPLATE = """
 
     <script>
         const firebaseConfig = {
-          apiKey: "AIzaSyArZJxJ6N4YHh8-0fbyH8c-MQ1V3jzbP9k",
-          authDomain: "python-music-app-67.firebaseapp.com",
-          projectId: "python-music-app-67"
+          apiKey: "{{ firebase_api_key }}",
+          authDomain: "{{ firebase_auth_domain }}",
+          projectId: "{{ firebase_project_id }}"
         };
         firebase.initializeApp(firebaseConfig);
 
@@ -204,3 +217,32 @@ HTML_TEMPLATE = """
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=5000)
+'''
+
+REQUIREMENTS_CONTENT = """Flask==3.0.2
+firebase-admin==6.5.0
+Pillow==10.2.0
+requests==2.31.0
+gunicorn==21.2.0
+"""
+
+PROCFILE_CONTENT = "web: gunicorn app:app\n"
+
+def generate_files():
+    print("Generating files...")
+    with open("app.py", "w", encoding="utf-8") as f:
+        f.write(APP_PY_CONTENT.strip())
+        print("✅ Created: app.py")
+        
+    with open("requirements.txt", "w", encoding="utf-8") as f:
+        f.write(REQUIREMENTS_CONTENT.strip())
+        print("✅ Created: requirements.txt")
+        
+    with open("Procfile", "w", encoding="utf-8") as f:
+        f.write(PROCFILE_CONTENT.strip())
+        print("✅ Created: Procfile")
+
+    print("\nAll files generated successfully!")
+
+if __name__ == "__main__":
+    generate_files()
